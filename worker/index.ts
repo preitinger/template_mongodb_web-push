@@ -20,7 +20,7 @@ export type {};
 type Version = number
 export type {};
 
-const version: Version = 25
+const version: Version = 26
 
 declare const self: ServiceWorkerGlobalScope;
 

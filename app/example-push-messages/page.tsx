@@ -112,6 +112,7 @@ export default function Page() {
         setWaitForReady(true);
         await navigator.serviceWorker.ready
         setWaitForReady(false);
+        setWaitingForServiceWorker(false);
         const oldSubscription = await serviceWorker.pushManager.getSubscription();
         if (oldSubscription != null) {
             const res = await oldSubscription.unsubscribe()
