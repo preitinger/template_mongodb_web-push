@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Container, FormControl, FormGroup, FormLabel, Navbar } from "react-bootstrap";
+import { Alert, Button, Container, FormControl, FormGroup, FormLabel, Navbar, Spinner } from "react-bootstrap";
 import { saveSubscriptionOnServer, sendPushMsg } from "./server";
 
 interface BrowserSupport {
@@ -21,6 +21,8 @@ export default function Page() {
     const [waitingForServiceWorker, setWaitingForServiceWorker] = useState(false);
     const [newServiceWorkerRegistered, setNewServiceWorkerRegistered] = useState(false);
     const [waitForReady, setWaitForReady] = useState(false);
+    const [sendingSubscription, setSendingSubscription] = useState(false);
+    const [sendingMsg, setSendingMsg] = useState(false);
 
     useEffect(() => {
         let serviceWorker = true;
@@ -129,17 +131,27 @@ export default function Page() {
 
     }
 
-    function onSendSubscriptionClick() {
-        saveSubscriptionOnServer(key, exampleSubscription);
+    async function onSendSubscriptionClick() {
+        setSendingSubscription(true);
+        try {
+            await saveSubscriptionOnServer(key, exampleSubscription);
+        } catch(reason) {
+            console.error(reason);
+        } finally {
+            setSendingSubscription(false);
+        }
     }
 
     async function onSendMsg() {
+        setSendingMsg(true);
         try {
             setMsgError('');
-            sendPushMsg(key, exampleMsg)
+            await sendPushMsg(key, exampleMsg)
         } catch (reason: unknown) {
             console.error(reason);
             setMsgError(JSON.stringify(reason));
+        } finally {
+            setSendingMsg(false);
         }
     }
 
@@ -176,13 +188,13 @@ export default function Page() {
                         <FormLabel htmlFor="userKey">User Key</FormLabel>
                         <FormControl id='userKey' type='text' value={key} onChange={(e) => setKey(e.target.value)} className='mb-3' />
                     </FormGroup>
-                    <Button onClick={onSendSubscriptionClick} className='mb-3'>Send subscription</Button>
+                    <Button onClick={onSendSubscriptionClick} className='mb-3' disabled={sendingSubscription}>{sendingSubscription ? <Spinner size='sm' role='status' animation="border" /> : 'Send subscription'}</Button>
                     <FormGroup>
                         <FormLabel htmlFor='exampleMsg'>Example Message</FormLabel>
                         <FormControl id='exampleMsg' type='text' value={exampleMsg} onChange={(e) => setExampleMsg(e.target.value)} className="mb-3" />
                     </FormGroup>
-                    <Button onClick={onSendMsg}>Send example message</Button>
-                    <Alert show={!!msgError} variant="danger">{msgError}</Alert>
+                    <Button onClick={onSendMsg}>{sendingMsg ? <Spinner /> : 'Send example message'}</Button>
+                    <Alert show={!!msgError} variant="danger">msgError: {msgError}</Alert>
                 </>
             }
         </Container>
