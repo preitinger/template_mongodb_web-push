@@ -18,6 +18,9 @@ export default function Page() {
     const [key, setKey] = useState('');
     const [exampleMsg, setExampleMsg] = useState('');
     const [msgError, setMsgError] = useState('');
+    const [waitingForServiceWorker, setWaitingForServiceWorker] = useState(false);
+    const [newServiceWorkerRegistered, setNewServiceWorkerRegistered] = useState(false);
+    const [waitForReady, setWaitForReady] = useState(false);
 
     useEffect(() => {
         let serviceWorker = true;
@@ -58,31 +61,71 @@ export default function Page() {
     }
 
     async function onRegisterClick() {
+        setNewServiceWorkerRegistered(false);
         await askPermission();
         console.log('asked for permission')
+        // setWaitingForServiceWorker(true);
+        // const serviceWorker = await navigator.serviceWorker.ready
+        // setWaitingForServiceWorker(false);
+        // setServiceWorkerCount((await navigator.serviceWorker.getRegistrations()).length);
+
+        // {
+        //     // new
+        //     const subscribeOptions: PushSubscriptionOptionsInit = {
+        //         userVisibleOnly: true,
+        //         applicationServerKey: "BDd1oHzF6UUQSPVLTFxTflz_pxeUUrkcpRDs8O4k_3UdxBhGMV-zGjhOHltp90QzjR4CWscXJ-2hig0lw0Y8EqY"
+        //     }
+        //     const oldSubscription = await serviceWorker.pushManager.getSubscription();
+        //     if (oldSubscription != null) {
+        //         const res = await oldSubscription.unsubscribe()
+        //         console.log('result of unsubscribe', res);
+        //     }
+        //     const subscription = await serviceWorker.pushManager.subscribe(subscribeOptions);
+        //     const json = subscription.toJSON();
+        //     const s = JSON.stringify(json);
+        //     const s2 = JSON.stringify(subscription)
+        //     setExampleSubscription(s);
+        //     setExampleSubscription2(s2);
+        //     setSubscriptionsEqual(s === s2);
+
+        // }
+
+        setWaitingForServiceWorker(true);
         const regs = await navigator.serviceWorker.getRegistrations()
         console.log('service worker registrations', regs);
         setServiceWorkerCount(regs.length);
+        let serviceWorker: ServiceWorkerRegistration | null = null;
 
         if (regs.length > 0) {
-            const serviceWorker = regs[0];
-            const subscribeOptions: PushSubscriptionOptionsInit = {
-                userVisibleOnly: true,
-                applicationServerKey: "BDd1oHzF6UUQSPVLTFxTflz_pxeUUrkcpRDs8O4k_3UdxBhGMV-zGjhOHltp90QzjR4CWscXJ-2hig0lw0Y8EqY"
-            }
-            const oldSubscription = await serviceWorker.pushManager.getSubscription();
-            if (oldSubscription != null) {
-                const res = await oldSubscription.unsubscribe()
-                console.log('result of unsubscribe', res);
-            }
-            const subscription = await serviceWorker.pushManager.subscribe(subscribeOptions);
-            const json = subscription.toJSON();
-            const s = JSON.stringify(json);
-            const s2 = JSON.stringify(subscription)
-            setExampleSubscription(s);
-            setExampleSubscription2(s2);
-            setSubscriptionsEqual(s === s2);
+            serviceWorker = regs[0];
+            console.log('use old service worker')
+        } else {
+            console.log('register new service worker (\'/sw.js\')');
+            serviceWorker = await navigator.serviceWorker.register('/sw.js')
+            setNewServiceWorkerRegistered(true);
         }
+
+        const subscribeOptions: PushSubscriptionOptionsInit = {
+            userVisibleOnly: true,
+            applicationServerKey: "BDd1oHzF6UUQSPVLTFxTflz_pxeUUrkcpRDs8O4k_3UdxBhGMV-zGjhOHltp90QzjR4CWscXJ-2hig0lw0Y8EqY"
+        }
+        setWaitForReady(true);
+        await navigator.serviceWorker.ready
+        setWaitForReady(false);
+        const oldSubscription = await serviceWorker.pushManager.getSubscription();
+        if (oldSubscription != null) {
+            const res = await oldSubscription.unsubscribe()
+            console.log('result of unsubscribe', res);
+        }
+        const subscription = await serviceWorker.pushManager.subscribe(subscribeOptions);
+        const json = subscription.toJSON();
+        const s = JSON.stringify(json);
+        const s2 = JSON.stringify(subscription)
+        setExampleSubscription(s);
+        setExampleSubscription2(s2);
+        setSubscriptionsEqual(s === s2);
+
+
     }
 
     function onSendSubscriptionClick() {
@@ -111,6 +154,9 @@ export default function Page() {
                     Register for push notifications
                 </Button>
             }
+            <Alert show={true}>{waitingForServiceWorker ? 'Waiting for service worker ...' : '(Not yet) waiting for service worker'}</Alert>
+            <Alert show={newServiceWorkerRegistered}>New service worker registered</Alert>
+            <Alert show={waitForReady}>waitForReady</Alert>
             <Alert show={serviceWorkerCount != null} variant={serviceWorkerCount === 0 ? 'danger' : serviceWorkerCount != null && serviceWorkerCount > 1 ? 'warning' : 'success'} className='mb-3'>{serviceWorkerCount} Service Worker gefunden</Alert>
             <Alert show={exampleSubscription !== ''} variant="success" className='mb-3'>
                 <div className='overflow-auto pb-2'>
